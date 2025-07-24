@@ -2,13 +2,13 @@ from flask import Flask, render_template_string, request
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from azure.core.exceptions import HttpResponseError
-from datetime import datetime, timezone
+from datetime import timezone
 
 app = Flask(__name__)
 
-# 🔧 Nazwa Key Vault — zmień na swoją
+# 🔧 Wpisz nazwę swojego Key Vault
 VAULT_NAME = "mobilotest12"
-KV_URL = f"https://mobilotest12.vault.azure.net/"
+KV_URL = f"https://mobilotest12.vault.azure.net"
 
 # 🔐 Autoryzacja przez Managed Identity
 credential = DefaultAzureCredential()
@@ -19,7 +19,7 @@ TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Expired Secrets Viewer</title>
+    <title>All Secrets Viewer</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 40px; }
         h2, form, p.info { text-align: center; }
@@ -30,7 +30,7 @@ TEMPLATE = """
 </head>
 <body>
     <p class="info"><strong>Connected to Key Vault:</strong> {{ vault_name }}</p>
-    <h2>Check for expired secrets 🔒</h2>
+    <h2>Check all secrets 🔒</h2>
     <form method="POST">
         <div style="text-align:center;">
             <button type="submit">🔍 Check Secret</button>
@@ -40,14 +40,14 @@ TEMPLATE = """
         <p class="error">🚫 {{ error }}</p>
     {% endif %}
     {% if secrets %}
-        <h3>📜 Expired secrets:</h3>
+        <h3>📜 All secrets:</h3>
         <ul>
         {% for name in secrets %}
             <li>{{ name }}</li>
         {% endfor %}
         </ul>
     {% elif secrets is not none %}
-        <p style="text-align:center;">✅ No expired secrets found</p>
+        <p style="text-align:center;">✅ No secrets found</p>
     {% endif %}
 </body>
 </html>
@@ -55,19 +55,18 @@ TEMPLATE = """
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    expired_secrets = None
+    all_secrets = None
     error_message = None
 
     if request.method == "POST":
-        expired_secrets = []
+        all_secrets = []
         try:
             for props in client.list_properties_of_secrets():
-                if props.expires_on and props.expires_on < datetime.now(timezone.utc):
-                    expired_secrets.append(props.name)
+                all_secrets.append(props.name)
         except HttpResponseError as e:
             if e.status_code == 403:
                 error_message = (
-                    "Access denied: Your Managed Identity lacks permission to list secret properties. "
+                    "Access denied: Your Managed Identity lacks permission to list secrets. "
                     "Try assigning the 'Key Vault Reader' role."
                 )
             else:
@@ -77,7 +76,7 @@ def index():
 
     return render_template_string(
         TEMPLATE,
-        secrets=expired_secrets,
+        secrets=all_secrets,
         vault_name=VAULT_NAME,
         error=error_message
     )
