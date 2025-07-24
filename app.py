@@ -6,15 +6,15 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# 🔧 Konfiguracja Key Vault
-VAULT_NAME = "mobilotest12"  # ← Zmień na nazwę Twojego Key Vaulta
-KV_URL = f"https://mobilotest12.vault.azure.net/"
+# 🔧 Nazwa Key Vault — zmień na własną
+VAULT_NAME = "your-key-vault-name"
+KV_URL = f"https://{VAULT_NAME}.vault.azure.net"
 
-# 🔐 Uwierzytelnienie za pomocą Managed Identity
+# 🔐 Autoryzacja przez Managed Identity
 credential = DefaultAzureCredential()
 client = SecretClient(vault_url=KV_URL, credential=credential)
 
-# 🎨 HTML Template
+# 🎨 HTML szablon
 TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -22,9 +22,8 @@ TEMPLATE = """
     <title>Expired Secrets Viewer</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 40px; }
-        h2, form { text-align: center; }
+        h2, form, p.info { text-align: center; }
         button { padding: 10px 20px; font-size: 16px; }
-        p.info { font-size: 14px; color: #333; margin-bottom: 30px; text-align:center; }
         .error { color: red; text-align: center; font-weight: bold; margin-top: 20px; }
         ul { font-size: 16px; }
     </style>
@@ -62,14 +61,20 @@ def index():
     if request.method == "POST":
         expired_secrets = []
         try:
+            # list_properties_of_secrets wymaga Key Vault Reader
             for props in client.list_properties_of_secrets():
                 if props.expires_on and props.expires_on < datetime.utcnow():
                     expired_secrets.append(props.name)
         except HttpResponseError as e:
             if e.status_code == 403:
-                error_message = "Access denied: Your identity lacks permission to list secrets in this Key Vault."
+                error_message = (
+                    "Access denied: Your Managed Identity does not have permission "
+                    "to list secret properties. Consider assigning the 'Key Vault Reader' role."
+                )
             else:
-                error_message = f"Unexpected error: {e.message}"
+                error_message = f"Unexpected error: {e.message or str(e)}"
+        except Exception as e:
+            error_message = f"Unhandled exception: {str(e)}"
 
     return render_template_string(
         TEMPLATE,
