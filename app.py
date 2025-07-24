@@ -7,8 +7,8 @@ from datetime import datetime
 app = Flask(__name__)
 
 # 🔧 Nazwa Key Vault — zmień na własną
-VAULT_NAME = "your-key-vault-name"
-KV_URL = f"https://{VAULT_NAME}.vault.azure.net"
+VAULT_NAME = "mobilotest12"
+KV_URL = f"https://mobilotest12.vault.azure.net/"
 
 # 🔐 Autoryzacja przez Managed Identity
 credential = DefaultAzureCredential()
