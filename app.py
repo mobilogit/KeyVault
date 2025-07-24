@@ -6,7 +6,7 @@ from datetime import timezone
 
 app = Flask(__name__)
 
-# 🔧 Wpisz nazwę swojego Key Vault
+# 🔧 Zmień na swoją nazwę Key Vaulta
 VAULT_NAME = "mobilotest12"
 KV_URL = f"https://mobilotest12.vault.azure.net"
 
@@ -25,7 +25,9 @@ TEMPLATE = """
         h2, form, p.info { text-align: center; }
         button { padding: 10px 20px; font-size: 16px; }
         .error { color: red; text-align: center; font-weight: bold; margin-top: 20px; }
-        ul { font-size: 16px; }
+        table { width: 100%%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
     </style>
 </head>
 <body>
@@ -41,11 +43,18 @@ TEMPLATE = """
     {% endif %}
     {% if secrets %}
         <h3>📜 All secrets:</h3>
-        <ul>
-        {% for name in secrets %}
-            <li>{{ name }}</li>
-        {% endfor %}
-        </ul>
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>Expires On</th>
+            </tr>
+            {% for secret in secrets %}
+            <tr>
+                <td>{{ secret.name }}</td>
+                <td>{{ secret.expires_on if secret.expires_on else "Not set" }}</td>
+            </tr>
+            {% endfor %}
+        </table>
     {% elif secrets is not none %}
         <p style="text-align:center;">✅ No secrets found</p>
     {% endif %}
@@ -62,7 +71,10 @@ def index():
         all_secrets = []
         try:
             for props in client.list_properties_of_secrets():
-                all_secrets.append(props.name)
+                all_secrets.append({
+                    "name": props.name,
+                    "expires_on": props.expires_on.isoformat() if props.expires_on else None
+                })
         except HttpResponseError as e:
             if e.status_code == 403:
                 error_message = (
