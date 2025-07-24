@@ -6,7 +6,7 @@ from datetime import timezone
 
 app = Flask(__name__)
 
-# 🔧 Zmień na swoją nazwę Key Vaulta
+# 🔧 Nazwa Twojego Key Vaulta
 VAULT_NAME = "mobilotest12"
 KV_URL = f"https://mobilotest12.vault.azure.net"
 
@@ -14,7 +14,7 @@ KV_URL = f"https://mobilotest12.vault.azure.net"
 credential = DefaultAzureCredential()
 client = SecretClient(vault_url=KV_URL, credential=credential)
 
-# 🎨 HTML Template
+# 🎨 HTML szablon
 TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -51,7 +51,7 @@ TEMPLATE = """
             {% for secret in secrets %}
             <tr>
                 <td>{{ secret.name }}</td>
-                <td>{{ secret.expires_on if secret.expires_on else "Not set" }}</td>
+                <td>{{ secret.expires_on }}</td>
             </tr>
             {% endfor %}
         </table>
@@ -71,9 +71,13 @@ def index():
         all_secrets = []
         try:
             for props in client.list_properties_of_secrets():
+                if props.expires_on:
+                    expires = props.expires_on.astimezone(timezone.utc).strftime("%d %B %Y, %H:%M UTC")
+                else:
+                    expires = "Not set"
                 all_secrets.append({
                     "name": props.name,
-                    "expires_on": props.expires_on.isoformat() if props.expires_on else None
+                    "expires_on": expires
                 })
         except HttpResponseError as e:
             if e.status_code == 403:
