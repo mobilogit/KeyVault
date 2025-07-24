@@ -2,11 +2,11 @@ from flask import Flask, render_template_string, request
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from azure.core.exceptions import HttpResponseError
-from datetime import datetime
+from datetime import datetime, timezone
 
 app = Flask(__name__)
 
-# 🔧 Nazwa Key Vault — zmień na własną
+# 🔧 Nazwa Key Vault — zmień na swoją
 VAULT_NAME = "mobilotest12"
 KV_URL = f"https://mobilotest12.vault.azure.net/"
 
@@ -14,7 +14,7 @@ KV_URL = f"https://mobilotest12.vault.azure.net/"
 credential = DefaultAzureCredential()
 client = SecretClient(vault_url=KV_URL, credential=credential)
 
-# 🎨 HTML szablon
+# 🎨 HTML Template
 TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -61,15 +61,14 @@ def index():
     if request.method == "POST":
         expired_secrets = []
         try:
-            # list_properties_of_secrets wymaga Key Vault Reader
             for props in client.list_properties_of_secrets():
-                if props.expires_on and props.expires_on < datetime.utcnow():
+                if props.expires_on and props.expires_on < datetime.now(timezone.utc):
                     expired_secrets.append(props.name)
         except HttpResponseError as e:
             if e.status_code == 403:
                 error_message = (
-                    "Access denied: Your Managed Identity does not have permission "
-                    "to list secret properties. Consider assigning the 'Key Vault Reader' role."
+                    "Access denied: Your Managed Identity lacks permission to list secret properties. "
+                    "Try assigning the 'Key Vault Reader' role."
                 )
             else:
                 error_message = f"Unexpected error: {e.message or str(e)}"
